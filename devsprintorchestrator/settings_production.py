@@ -31,6 +31,11 @@ DATABASES = {
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Additional static files locations
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 # Media files (if you add file uploads later)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
