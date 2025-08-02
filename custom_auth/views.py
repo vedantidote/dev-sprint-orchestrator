@@ -23,7 +23,7 @@ def login_view(request):
         else:
             messages.error(request, 'Invalid username or password.')
     
-    return render(request, 'auth/login.html')
+    return render(request, 'custom_auth/login.html')
 
 
 def logout_view(request):
@@ -51,7 +51,7 @@ def register_view(request):
     else:
         form = UserCreationForm()
     
-    return render(request, 'auth/register.html', {'form': form})
+    return render(request, 'custom_auth/register.html', {'form': form})
 
 
 @login_required
