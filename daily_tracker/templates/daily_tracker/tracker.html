@@ -1,0 +1,38 @@
+{% extends 'custom_auth/base.html' %}
+
+{% block title %}Daily Tracker - Dev Sprint Orchestrator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tasks"></i> Daily Tracker
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-day"></i> Today's Progress</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Daily tracker functionality will be implemented here.</p>
+                <p>Welcome, {{ user.username }}! This is where you'll track your daily progress.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Statistics and progress metrics will appear here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
