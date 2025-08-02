@@ -1,0 +1,109 @@
+{% extends 'custom_auth/base.html' %}
+
+{% block title %}Dashboard - Dev Sprint Orchestrator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Daily Tracker</h5>
+                        <p class="card-text">Track your daily progress and tasks</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+                <a href="{% url 'daily_tracker:tracker' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right"></i> Go to Tracker
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Profile</h5>
+                        <p class="card-text">View and manage your profile</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user fa-2x"></i>
+                    </div>
+                </div>
+                                        <a href="{% url 'custom_auth:profile' %}" class="btn btn-light">
+                            <i class="fas fa-arrow-right"></i> View Profile
+                        </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Admin Panel</h5>
+                        <p class="card-text">Manage users and system settings</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-cog fa-2x"></i>
+                    </div>
+                </div>
+                <a href="{% url 'admin:index' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right"></i> Admin Panel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user"></i> Welcome, {{ user.username }}!</h5>
+            </div>
+            <div class="card-body">
+                <p>You're logged in as <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+                {% if user.department %}
+                    <p><strong>Department:</strong> {{ user.department }}</p>
+                {% endif %}
+                {% if user.designation %}
+                    <p><strong>Designation:</strong> {{ user.designation }}</p>
+                {% endif %}
+                <p><strong>Last Login:</strong> {{ user.last_login|date:"F j, Y g:i A"|default:"First time login" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Quick Info</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-calendar"></i> <strong>Member since:</strong> {{ user.date_joined|date:"F j, Y" }}</li>
+                    <li><i class="fas fa-envelope"></i> <strong>Email:</strong> {{ user.email|default:"Not provided" }}</li>
+                    {% if user.employee_id %}
+                        <li><i class="fas fa-id-badge"></i> <strong>Employee ID:</strong> {{ user.employee_id }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

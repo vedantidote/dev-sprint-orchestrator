@@ -1,0 +1,339 @@
+{% extends 'custom_auth/base.html' %}
+
+{% block title %}Record Daily - Dev Sprint Orchestrator{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-clipboard-list"></i> Record Daily Leave & Standup
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar"></i> Date</h5>
+            </div>
+            <div class="card-body">
+                <input type="date" id="recordDate" class="form-control" value="{{ today|date:'Y-m-d' }}">
+                <small class="text-muted">Leave blank to use today's date</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Section 1: Leave Recording -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-bed"></i> Section 1: Leave Recording</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="leaveUsername" class="form-label">Username</label>
+                    <input type="text" id="leaveUsername" class="form-control" placeholder="Start typing username...">
+                    <div id="leaveUserDropdown" class="dropdown-menu w-100" style="display: none;"></div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="leaveHalf" class="form-label">Leave Type</label>
+                    <select id="leaveHalf" class="form-control">
+                        <option value="0">Full Day</option>
+                        <option value="1">First Half</option>
+                        <option value="2">Second Half</option>
+                    </select>
+                </div>
+                
+
+                
+                <hr>
+                
+                <h6>Leave Entries:</h6>
+                <div id="leaveEntries" class="list-group">
+                    <!-- Leave entries will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 2: Standup Recording -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Section 2: Standup Defaulters</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="standupUsername" class="form-label">Username (Did not respond)</label>
+                    <input type="text" id="standupUsername" class="form-control" placeholder="Start typing username...">
+                    <div id="standupUserDropdown" class="dropdown-menu w-100" style="display: none;"></div>
+                </div>
+                
+
+                
+                <hr>
+                
+                <h6>Standup Defaulters:</h6>
+                <div id="standupDefaulters" class="list-group">
+                    <!-- Standup defaulters will be added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-save"></i> Submit Records</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <strong>Note:</strong> Users on leave (full day or first half) will not have standup records created.
+                    All other users will be marked as responded unless listed as defaulters.
+                </p>
+                <button type="button" id="submitRecordsBtn" class="btn btn-success btn-lg">
+                    <i class="fas fa-save"></i> Submit All Records
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check"></i> Success!</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="successMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dropdown-menu {
+    max-height: 200px;
+    overflow-y: auto;
+}
+.dropdown-item {
+    cursor: pointer;
+}
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.remove-btn {
+    cursor: pointer;
+    color: #dc3545;
+}
+.remove-btn:hover {
+    color: #c82333;
+}
+</style>
+
+<script>
+let leaveEntries = [];
+let standupDefaulters = [];
+
+// User search functionality
+function setupUserSearch(inputId, dropdownId, entriesArray, entryType) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    
+    input.addEventListener('input', function() {
+        const query = this.value;
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        fetch(`/daily_tracker/search-users/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                dropdown.innerHTML = '';
+                data.users.forEach(user => {
+                    const item = document.createElement('a');
+                    item.className = 'dropdown-item';
+                    item.href = '#';
+                    item.textContent = `${user.username}${user.full_name !== user.username ? ` (${user.full_name})` : ''}`;
+                    item.onclick = function(e) {
+                        e.preventDefault();
+                        input.value = user.username;
+                        dropdown.style.display = 'none';
+                        
+                        // Add entry based on type
+                        if (entryType === 'leave') {
+                            addLeaveEntry(user.username);
+                        } else {
+                            addStandupDefaulter(user.username);
+                        }
+                        input.value = '';
+                    };
+                    dropdown.appendChild(item);
+                });
+                dropdown.style.display = data.users.length > 0 ? 'block' : 'none';
+            });
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+
+// Add leave entry
+function addLeaveEntry(username) {
+    const half = document.getElementById('leaveHalf').value;
+    const halfText = ['Full Day', 'First Half', 'Second Half'][half];
+    
+    const entry = { username, half: parseInt(half) };
+    leaveEntries.push(entry);
+    
+    const container = document.getElementById('leaveEntries');
+    const item = document.createElement('div');
+    item.className = 'list-group-item';
+    item.innerHTML = `
+        <div>
+            <strong>${username}</strong> - ${halfText}
+        </div>
+        <i class="fas fa-times remove-btn" onclick="removeLeaveEntry('${username}')"></i>
+    `;
+    container.appendChild(item);
+}
+
+// Remove leave entry
+function removeLeaveEntry(username) {
+    leaveEntries = leaveEntries.filter(entry => entry.username !== username);
+    updateLeaveEntriesDisplay();
+}
+
+// Update leave entries display
+function updateLeaveEntriesDisplay() {
+    const container = document.getElementById('leaveEntries');
+    container.innerHTML = '';
+    
+    leaveEntries.forEach(entry => {
+        const halfText = ['Full Day', 'First Half', 'Second Half'][entry.half];
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
+        item.innerHTML = `
+            <div>
+                <strong>${entry.username}</strong> - ${halfText}
+            </div>
+            <i class="fas fa-times remove-btn" onclick="removeLeaveEntry('${entry.username}')"></i>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// Add standup defaulter
+function addStandupDefaulter(username) {
+    if (!standupDefaulters.includes(username)) {
+        standupDefaulters.push(username);
+        
+        const container = document.getElementById('standupDefaulters');
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
+        item.innerHTML = `
+            <div>
+                <strong>${username}</strong> - Did not respond
+            </div>
+            <i class="fas fa-times remove-btn" onclick="removeStandupDefaulter('${username}')"></i>
+        `;
+        container.appendChild(item);
+    }
+}
+
+// Remove standup defaulter
+function removeStandupDefaulter(username) {
+    standupDefaulters = standupDefaulters.filter(u => u !== username);
+    updateStandupDefaultersDisplay();
+}
+
+// Update standup defaulters display
+function updateStandupDefaultersDisplay() {
+    const container = document.getElementById('standupDefaulters');
+    container.innerHTML = '';
+    
+    standupDefaulters.forEach(username => {
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
+        item.innerHTML = `
+            <div>
+                <strong>${username}</strong> - Did not respond
+            </div>
+            <i class="fas fa-times remove-btn" onclick="removeStandupDefaulter('${username}')"></i>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// Submit records
+function submitRecords() {
+    const date = document.getElementById('recordDate').value;
+    const data = {
+        date: date,
+        leave_entries: leaveEntries,
+        standup_defaulters: standupDefaulters
+    };
+    
+    fetch('/daily_tracker/record/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('successMessage').textContent = data.message;
+            new bootstrap.Modal(document.getElementById('successModal')).show();
+            
+            // Clear all entries
+            leaveEntries = [];
+            standupDefaulters = [];
+            updateLeaveEntriesDisplay();
+            updateStandupDefaultersDisplay();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while submitting records.');
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupUserSearch('leaveUsername', 'leaveUserDropdown', leaveEntries, 'leave');
+    setupUserSearch('standupUsername', 'standupUserDropdown', standupDefaulters, 'standup');
+    
+
+    
+    document.getElementById('submitRecordsBtn').addEventListener('click', submitRecords);
+});
+</script>
+{% endblock %} 
